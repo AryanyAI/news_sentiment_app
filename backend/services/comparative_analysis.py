@@ -58,14 +58,22 @@ class ComparativeAnalyzer:
 
     def _analyze_coverage_differences(self, articles: List[Dict]) -> List[CoverageDifference]:
         """
-        Analyze differences in how articles cover the same topic
+        Analyze differences in how articles cover the same topic with reduced redundancy
         """
         try:
             differences = []
+            processed_pairs = set()  # Keep track of article pairs we've already compared
             
             # Compare each article with others
             for i, article1 in enumerate(articles):
-                for article2 in articles[i+1:]:
+                for j, article2 in enumerate(articles[i+1:], i+1):
+                    # Skip if we've already compared these sources
+                    source_pair = f"{article1['source']}_{article2['source']}"
+                    if source_pair in processed_pairs:
+                        continue
+                    
+                    processed_pairs.add(source_pair)
+                    
                     # Compare sentiment differences
                     if article1["sentiment"] != article2["sentiment"]:
                         differences.append(
@@ -76,16 +84,34 @@ class ComparativeAnalyzer:
                         )
                     
                     # Compare topic differences
-                    topic_diff = set(article1["topics"]) - set(article2["topics"])
-                    if topic_diff:
+                    article1_topics = set(article1["topics"])
+                    article2_topics = set(article2["topics"])
+                    
+                    # Only include significant differences
+                    unique_topics1 = article1_topics - article2_topics
+                    unique_topics2 = article2_topics - article1_topics
+                    
+                    if unique_topics1 and len(unique_topics1) > 1:
                         differences.append(
                             CoverageDifference(
-                                comparison=f"Article from {article1['source']} focuses on {', '.join(topic_diff)} while {article2['source']} does not cover these topics.",
-                                impact=f"This difference in coverage suggests varying editorial priorities between sources."
+                                comparison=f"Article from {article1['source']} focuses on {', '.join(unique_topics1)} while {article2['source']} has different focus.",
+                                impact=f"This difference highlights how {article1['source']} emphasizes {', '.join(unique_topics1)} in their coverage."
                             )
                         )
-            
-            return differences
+                    
+                    if unique_topics2 and len(unique_topics2) > 1:
+                        differences.append(
+                            CoverageDifference(
+                                comparison=f"Article from {article2['source']} uniquely covers {', '.join(unique_topics2)} not found in {article1['source']}.",
+                                impact=f"This shows how {article2['source']} provides additional context on {', '.join(unique_topics2)}."
+                            )
+                        )
+                
+                # Limit to most significant differences
+                if len(differences) >= 10:
+                    break
+                
+            return differences[:10]  # Limit to 10 most significant differences
             
         except Exception as e:
             self.logger.error(f"Error analyzing coverage differences: {str(e)}")

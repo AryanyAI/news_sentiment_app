@@ -5,6 +5,7 @@ from typing import Optional
 from config import settings
 import uuid
 from datetime import datetime
+from deep_translator import GoogleTranslator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -14,6 +15,7 @@ class TTSService:
         self.output_dir = "static/audio"
         self._ensure_output_dir()
         self.logger = logging.getLogger(__name__)
+        self.translator = GoogleTranslator(source='en', target='hi')
 
     def _ensure_output_dir(self):
         """Ensure the output directory exists"""
@@ -25,7 +27,7 @@ class TTSService:
         Generate audio file from text using gTTS
         """
         try:
-            self.logger.info(f"Generating audio for text of length {len(text)} in language '{language}'")
+            self.logger.info(f"Generating audio for text of length {len(text)}")
             
             # Generate unique filename
             filename = f"{uuid.uuid4()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp3"
@@ -33,16 +35,23 @@ class TTSService:
             
             # Ensure text is not empty
             if not text or len(text.strip()) == 0:
-                text = "No text was provided for conversion to speech."
+                text = "कोई टेक्स्ट प्रदान नहीं किया गया है।"
                 self.logger.warning("Empty text provided for TTS, using default message")
             
-            # If Hindi text, ensure it's correctly encoded
-            if language == "hi":
-                # Add some basic Hindi greeting to ensure we're testing Hindi capabilities
-                hindi_greeting = "नमस्ते, "
-                if not any(ord(c) > 127 for c in text):  # No Unicode chars, likely not Hindi
-                    self.logger.warning("Hindi language selected but text might not be in Hindi")
-                    text = hindi_greeting + text  # Prepend greeting to ensure some Hindi content
+            # Translate text to Hindi if not already in Hindi
+            if language == "hi" and not any(ord(c) > 127 for c in text):
+                self.logger.info("Text appears to be in English, translating to Hindi")
+                try:
+                    hindi_text = self.translator.translate(text)
+                    if hindi_text and any(ord(c) > 127 for c in hindi_text):
+                        self.logger.info("Translation successful")
+                        text = hindi_text
+                    else:
+                        self.logger.warning("Translation didn't produce Hindi text, using original with prefix")
+                        text = "अनुवाद असफल होने के बाद मूल संदेश: " + text
+                except Exception as e:
+                    self.logger.error(f"Translation error: {str(e)}")
+                    text = "अनुवाद त्रुटि के बाद मूल संदेश: " + text
             
             # Generate speech
             self.logger.info("Calling gTTS to generate audio")
@@ -62,22 +71,16 @@ class TTSService:
             
         except Exception as e:
             self.logger.error(f"Error generating audio: {str(e)}")
-            # Create a fallback audio file with error message
+            # Create fallback audio
+            fallback_text = "क्षमा करें, ऑडियो जनरेट करने में त्रुटि हुई है।"
+            fallback_filename = f"error_{uuid.uuid4()}.mp3"
+            fallback_path = os.path.join(self.output_dir, fallback_filename)
             try:
-                fallback_filename = f"error_{uuid.uuid4()}.mp3"
-                fallback_filepath = os.path.join(self.output_dir, fallback_filename)
-                
-                # Generate fallback audio in English
-                fallback_tts = gTTS(
-                    text="Sorry, there was an error generating the audio. Please try again later.",
-                    lang="en",
-                    slow=False
-                )
-                fallback_tts.save(fallback_filepath)
+                fallback_tts = gTTS(text=fallback_text, lang="hi")
+                fallback_tts.save(fallback_path)
                 return f"http://localhost:8000/static/audio/{fallback_filename}"
-            except Exception as nested_error:
-                self.logger.error(f"Failed to create fallback audio: {str(nested_error)}")
-                raise e  # Re-raise the original error if fallback fails
+            except:
+                raise e
 
     def cleanup_old_files(self, max_age_hours: int = 24):
         """

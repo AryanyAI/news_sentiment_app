@@ -96,22 +96,59 @@ class TextSummarizer:
             return '. '.join(sentences) + '.'
 
     async def extract_topics(self, text: str, max_topics: int = 5) -> List[str]:
-        """
-        Extract key topics from the text
-        """
+        """Extract more specific and accurate topics from text"""
         try:
-            # For mock data, use a more reliable approach
-            # Define industry-specific topics based on content
+            # Convert to lowercase for easier matching
+            text_lower = text.lower()
+            
+            # Find company-specific topics based on content
+            company_topics = {
+                "microsoft": ["windows", "office", "teams", "skype", "azure", "onenote", 
+                             "365", "satya nadella", "bill gates", "copilot", "surface", 
+                             "xbox", "directx", "bing", "edge", "visual studio"],
+                "tesla": ["electric vehicles", "elon musk", "model 3", "autopilot", 
+                         "battery", "solar", "cybertruck", "gigafactory", "supercharger"],
+                "apple": ["iphone", "ipad", "mac", "ios", "macos", "macbook", "airpods", 
+                         "app store", "tim cook", "watch", "siri", "itunes", "safari"],
+                "google": ["search", "android", "chrome", "gmail", "youtube", "workspace", 
+                          "cloud", "pixel", "maps", "assistant", "alphabet", "sundar pichai"],
+                "amazon": ["e-commerce", "aws", "alexa", "prime", "jeff bezos", "kindle", 
+                          "marketplace", "web services", "warehouse", "logistics"]
+            }
+            
+            # Find company name in text to determine which specific terms to look for
+            company_name = None
+            for company in company_topics.keys():
+                if company in text_lower:
+                    company_name = company
+                    break
+            
+            # Get company-specific terms
+            specific_terms = []
+            if company_name:
+                specific_terms = company_topics[company_name]
+            
+            # Match specific company terms in content
+            matched_topics = []
+            for term in specific_terms:
+                if term in text_lower:
+                    matched_topics.append(term)
+            
+            # General industry topics
             industry_topics = {
-                "finance": ["earnings", "revenue", "profit", "stock", "investors", "market", "growth", "dividend", "financial", "quarterly", "fiscal"],
-                "technology": ["innovation", "product", "development", "design", "features", "technology", "software", "hardware", "app", "device", "digital"],
-                "regulation": ["compliance", "investigation", "regulatory", "legal", "scrutiny", "regulation", "lawsuit", "settlement", "allegation", "violation"],
-                "business": ["strategy", "growth", "performance", "expansion", "competition", "leadership", "executive", "CEO", "management", "restructuring"],
-                "manufacturing": ["production", "supply chain", "manufacturing", "quality", "factory", "assembly", "operations", "materials", "components"]
+                "finance": ["earnings", "revenue", "profit", "stock", "investors", "market", 
+                           "growth", "dividend", "financial", "quarterly", "fiscal"],
+                "technology": ["software", "hardware", "app", "device", "digital", "innovation", 
+                              "product", "development", "design", "features", "technology"],
+                "regulation": ["compliance", "investigation", "regulatory", "legal", "scrutiny", 
+                              "regulation", "lawsuit", "settlement", "allegation", "violation"],
+                "business": ["strategy", "growth", "performance", "expansion", "competition", 
+                            "leadership", "executive", "CEO", "management", "restructuring"],
+                "security": ["malware", "hacking", "vulnerability", "patch", "security", 
+                            "protection", "threat", "attack", "defense", "safeguard"]
             }
             
             # Check which topics are mentioned in the text
-            text_lower = text.lower()
             topic_matches = {}
             
             for category, terms in industry_topics.items():
@@ -122,22 +159,22 @@ class TextSummarizer:
                         else:
                             topic_matches[term] += 1
             
-            # Sort by frequency and select top topics
+            # Add specific topics first (limit to 3)
+            found_topics = matched_topics[:3]
+            
+            # Add general topics next
             sorted_topics = sorted(topic_matches.items(), key=lambda x: x[1], reverse=True)
-            found_topics = [topic for topic, count in sorted_topics[:max_topics]]
-                
-            # If we didn't find enough topics, add some generic ones
+            for topic, count in sorted_topics:
+                if topic not in found_topics and len(found_topics) < max_topics:
+                    found_topics.append(topic)
+            
+            # If we still don't have enough topics, add some generic ones
             if len(found_topics) < 3:
-                # Extract potential company name from first sentence
-                first_sentence = text.split('.')[0]
-                words = first_sentence.split()
-                potential_company = words[0] if words else "company"
-                
                 generic_topics = ["business", "market", "industry", "company", "news", "update"]
                 for topic in generic_topics:
                     if topic not in found_topics and len(found_topics) < max_topics:
                         found_topics.append(topic)
-                
+            
             return found_topics[:max_topics]
             
         except Exception as e:

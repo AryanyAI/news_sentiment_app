@@ -4,6 +4,7 @@ import os
 import time
 import signal
 import logging
+from typing import List, Dict
 
 logging.basicConfig(
     level=logging.INFO,

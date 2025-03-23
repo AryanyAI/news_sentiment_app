@@ -36,17 +36,21 @@ async def analyze_company(request: CompanyRequest):
     Analyze news articles for a given company
     """
     try:
-        logger.info(f"Analyzing company: {request.company_name}")
+        company_name = request.company_name
+        logger.info(f"Analyzing company: {company_name}")
         
         # Get news articles
         logger.info("Fetching news articles...")
-        articles = await news_scraper.get_articles(request.company_name)
+        articles = await news_scraper.get_articles(company_name)
         logger.info(f"Retrieved {len(articles)} articles")
         
         # Process each article
         processed_articles = []
         for i, article in enumerate(articles):
             logger.info(f"Processing article {i+1}/{len(articles)}: {article['title'][:30]}...")
+            
+            # Add company field to each article
+            article['company'] = company_name
             
             # Summarize article
             logger.info(f"Summarizing article {i+1}...")
@@ -68,7 +72,8 @@ async def analyze_company(request: CompanyRequest):
                 "topics": topics,
                 "source": article["source"],
                 "url": article["url"],
-                "published_date": article.get("published_date")
+                "published_date": article.get("published_date"),
+                "company": company_name  # Add company name to each processed article
             })
         
         # Perform comparative analysis
@@ -87,7 +92,7 @@ async def analyze_company(request: CompanyRequest):
         # Return final response
         logger.info("Analysis complete, returning response")
         return {
-            "company": request.company_name,
+            "company": company_name,
             "articles": processed_articles,
             "comparative_analysis": comparative_analysis,
             "final_sentiment": final_sentiment,

@@ -107,18 +107,37 @@ def main():
                     try:
                         audio_url = data['audio_url']
                         
-                        # Try to display audio directly
-                        st.audio(audio_url)
+                        # Use a direct proxy approach
+                        st.markdown(f"""
+                        <style>
+                        .audio-container {{
+                            margin-top: 1rem;
+                            margin-bottom: 1rem;
+                        }}
+                        .download-btn {{
+                            display: inline-block;
+                            padding: 0.5rem 1rem;
+                            margin-top: 0.5rem;
+                            background-color: #4CAF50;
+                            color: white;
+                            text-decoration: none;
+                            border-radius: 4px;
+                        }}
+                        </style>
+                        <audio controls style="width:100%">
+                            <source src="{audio_url}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                        <div class="audio-container">
+                            <p>If the audio doesn't play above:</p>
+                            <a href="{audio_url}" download="hindi_summary.mp3" class="download-btn">Download Audio</a>
+                            <a href="{audio_url}" target="_blank" class="download-btn" style="background-color: #008CBA; margin-left: 10px;">Open in New Tab</a>
+                        </div>
+                        """, unsafe_allow_html=True)
                         
-                        # Also provide a direct link as fallback
-                        st.markdown(f"**If audio doesn't play above, [click here to listen]({audio_url})**")
-                        
-                        # Display a download button
-                        st.markdown(f"<a href='{audio_url}' download='summary.mp3'>Download Audio</a>", unsafe_allow_html=True)
                     except Exception as e:
                         st.error(f"Error playing audio: {str(e)}")
-                        st.write("You can access the audio file directly at:")
-                        st.markdown(f"[Listen to Audio Summary]({data['audio_url']})")
+                        st.markdown(f"[Download Audio Summary]({data['audio_url']})")
                 
             except requests.exceptions.RequestException as e:
                 st.error(f"Error connecting to the API: {str(e)}")
