@@ -88,15 +88,16 @@ streamlit run pages/main_page.py
    - Returns list of available companies
 
 2. `POST /api/analyze`
-   - Input: Company name
-   - Returns: Complete analysis including news articles, sentiment analysis, and comparative analysis
+   - Input: JSON payload with company_name field
+   - Response: Full analysis including articles, sentiment, and audio URL
 
 3. `POST /api/tts`
-   - Input: Text content
-   - Returns: Audio file URL
+   - Input: JSON payload with text field and optional language field
+   - Response: Audio URL and metadata
 
 4. `GET /api/health`
-   - Service health check
+   - Method: GET
+   - Response: Health status of the API
 
 ## Technologies Used
 
@@ -166,4 +167,33 @@ The application is deployed on Hugging Face Spaces. Access it at: [Deployment UR
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Model Details
+
+### Text Summarization
+- Model: facebook/bart-large-cnn
+- Implementation: Hugging Face Transformers pipeline
+- Functionality: Summarizes lengthy news articles into concise summaries
+
+### Sentiment Analysis  
+- Model: nlptown/bert-base-multilingual-uncased-sentiment
+- Augmented with: Keyword-based sentiment detection
+- Functionality: Classifies article sentiment as positive, negative, or neutral
+
+### Text-to-Speech
+- Library: gTTS (Google Text-to-Speech)
+- Language: Hindi (hi)
+- Translation: Uses deep-translator for English to Hindi conversion when needed 
+
+## Assumptions & Limitations
+
+1. **News Scraping**: The application attempts to fetch real-time data from RSS feeds and web scraping. If these fail, it falls back to mock data for demonstration purposes.
+
+2. **Sentiment Analysis**: The sentiment analyzer is optimized for business and technology news but may miss nuanced sentiments in complex articles.
+
+3. **TTS Quality**: The quality of Hindi speech depends on gTTS implementation and may have pronunciation issues with technical terms.
+
+4. **Performance**: Processing multiple articles simultaneously may cause slower response times on resource-constrained environments.
+
+5. **API Rate Limits**: The application doesn't implement rate limiting, which would be needed for production deployment. 

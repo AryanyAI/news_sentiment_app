@@ -1,0 +1,9 @@
+{
+  "title": "News Sentiment Analysis & TTS App",
+  "emoji": "📰",
+  "colorFrom": "blue",
+  "colorTo": "indigo",
+  "sdk": "streamlit",
+  "sdk_version": "1.29.0",
+  "app_file": "frontend/run.py"
+}

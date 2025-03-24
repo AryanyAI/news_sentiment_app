@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from typing import Dict, List
 import pandas as pd
 from datetime import datetime
+import os
 
 # Configure page
 st.set_page_config(
@@ -14,7 +15,7 @@ st.set_page_config(
 )
 
 # Constants
-API_URL = "http://localhost:8000/api"
+API_URL = os.environ.get("API_URL", "http://localhost:8000/api")
 
 def create_sentiment_chart(sentiment_distribution: Dict) -> go.Figure:
     """Create a pie chart for sentiment distribution"""
